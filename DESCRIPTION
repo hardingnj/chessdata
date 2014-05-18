@@ -1,0 +1,11 @@
+Package: chessdata
+Title: Database of (evaluated) chess games and associated helper functions.
+Description: The /data directory contains an SQLite database. Several functions
+    are provided that allow easy interaction with the DB.
+Version: 0.1.0
+Author: Nicholas Harding <nick.harding@fastmail.net>
+Maintainer: Nicholas Harding <nick.harding@fastmail.net>
+License: MIT
+Imports:
+    reshape2,
+    RSQLite
