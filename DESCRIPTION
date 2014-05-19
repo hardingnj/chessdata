@@ -6,6 +6,7 @@ Version: 0.1.0
 Author: Nicholas Harding <nick.harding@fastmail.net>
 Maintainer: Nicholas Harding <nick.harding@fastmail.net>
 License: MIT
-Imports:
+Depends:
     reshape2,
-    RSQLite
+    RSQLite,
+    futile.logger
