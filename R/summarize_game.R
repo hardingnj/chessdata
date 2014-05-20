@@ -1,23 +1,16 @@
-summarize_game <- function(game, mercy_rule_limit = 500){
+#' Take a game object and caclulate summary statistics.
+#'
+#' This function takes a dataframe representing a game and calculates some summary statistics. 
+#' Although essentially a wrapper for calculating the 'mercy rule' and calculate_metrics.
+#'
+#' @param game a dataframe representing a game
+#' @param mercy_rule_limit a value representing how far behind a player must get before mercy rule is applied
+#' @export
 
-  stopifnot(
-    class(game) == 'data.frame'
-    );
+summarize_game <- function(game, mr_limit = 500){
 
-  # mercy rule "masks" all moves from a point where someone goes > X cp down.
-  cut_off <- match(
-    TRUE,
-    abs(game$comb_move_scores) > mercy_rule_limit,
-    nomatch = length(game$comb_move_scores) + 1
-  );
-  if(cut_off %% 2 == 1) cut_off <- cut_off + 1; 
-
-  game$mercy_rule <- 1:length(game$comb_move_scores) <= cut_off;
-
-  metrics <- calculate_metrics(subset(game, mercy_rule));
-
-  mm <- melt(do.call(rbind, metrics))
-  cast <- dcast(mm, ". ~ Var2 + Var1")[,-1]
-
-  cbind(nMoves = nrow(game), cast);
+  calculate_metrics(
+	  game,
+      calculate_mercy_rule(game, mr_limit)
+	);
 }

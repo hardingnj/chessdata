@@ -1,17 +1,31 @@
-calculate_metrics <- function(game_to_eval){
-  score_prop <- function(
-	  x,
-	  lim=300,
-	  inv = FALSE
-	) { x <- na.omit(x); s <- sum(x > lim); if(inv) 1 - s/length(x) else s/length(x); } 
+#' Take a game object and caclulate summary statistics.
+#'
+#' This function takes a dataframe representing a game and calculates some summary statistics. 
+#'
+#' @param game a dataframe representing a game
+#' @param mercy_rule_limit a value representing how far behind a player must get before mercy rule is applied
+#' @export
+#' @import reshape2 
 
-  with(
-    game_to_eval,
+calculate_metrics <- function(game_to_eval, mercy_rule){
+
+  # This is required in the possible event that whoToMove only has a single level.
+  levels(game_to_eval$whoToMove) <- c('White', 'Black')
+
+  metrics <- with(
+    subset(game_to_eval, mercy_rule),
     list(
-      mean   = tapply(score_diff, whoToMove, mean, na.rm=T),
-      blun_1 = tapply(score_diff, whoToMove, score_prop, lim = 100),
-      blun_3 = tapply(score_diff, whoToMove, score_prop, lim = 300),
-      blun_5 = tapply(score_diff, whoToMove, score_prop, lim = 500),
-      found  = tapply(score_diff, whoToMove, score_prop, lim = 0, inv = TRUE)
+      mean   = tapply(X = score_diff, INDEX = whoToMove, FUN = mean, na.rm=T),
+      blun_1 = tapply(X = score_diff, INDEX = whoToMove, FUN = score_prop, value = 100),
+      blun_3 = tapply(X = score_diff, INDEX = whoToMove, FUN = score_prop, value = 300),
+      blun_5 = tapply(X = score_diff, INDEX = whoToMove, FUN = score_prop, value = 500),
+      found  = tapply(X = score_diff, INDEX = whoToMove, FUN = score_prop, value = 0, inv = TRUE)
     ));
+ 
+  mm <- melt(do.call(rbind, metrics))
+  cast <- dcast(mm, ". ~ Var2 + Var1")[,-1]
+
+  out <- cbind(nMovesTot = nrow(game_to_eval), nMoves_MR = sum(mercy_rule), cast);
+  stopifnot(ncol(out) == 12)
+  return(out);
 }
