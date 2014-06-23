@@ -45,35 +45,37 @@ get_game_level_dfs <- function(
   flog.info("Query has returned %s rows", nrow(chess.data));
 
   # This is a list of chunk.size lists of 8 vectors. Maybe use stringr here to benchmark
-  flog.warn("currently read all char matrices into memory: could be more efficient here");
-  ml.data.list <- apply(chess.data[, array.names], 1, strsplit, ',')
+  flog.info("Beginning cast to dataframe");
+  move.level.data <- list()
+  time.to.cast <- system.time({
+    for(i in 1:nrow(chess.data)){
+      char.mat <- strsplit(
+        as.character(chess.data[i, array.names]),
+        ','
+      );
+      names(char.mat) <- array.names;
+      suppressWarnings({
+        single.game.data <- data.frame(
+          char.mat[1:4],
+          lapply(char.mat[5:8], as.numeric),
+          stringsAsFactors = FALSE
+        );});
+       single.game.data <- annotate_game(single.game.data);
+
+       if(!is.null(FUN)) { 
+         single.game.data <- FUN(single.game.data, ...);
+         }
+      move.level.data[[i]] <- single.game.data;
+    }
+  });
+  flog.info("Cast timing: ", time.to.cast, capture = TRUE);
 
   # now remove these columns from game data
   chess.data <- chess.data[, !colnames(chess.data) %in% array.names]
 
-  flog.info("Beginning cast to dataframe");
-  time.to.cast <- system.time({
-    move.level.data <- lapply(
-      ml.data.list,
-      function(x) {
-        #x is a list of char vectors:
-        suppressWarnings({
-          single.game.data <- data.frame(
-              x[1:4],
-              lapply(x[5:8], as.numeric),
-              stringsAsFactors = FALSE
-              );
-        });
-
-        single.game.data <- annotate_game(single.game.data);
-
-        if(!is.null(FUN)) { 
-          single.game.data <- FUN(single.game.data, ...);
-          }
-        return(single.game.data);
-      });
-  });
-  flog.info("Cast timing: ", time.to.cast, capture = TRUE);
+  # Recode 0/1/2 system.
+  chess.data$result <- factor(c('Black', 'White', 'Draw')[chess.data$result+1])
+  chess.data$result <- relevel(chess.data$result, ref = "Draw")
 
   # this is now a list of games, with one row per move.
   names(move.level.data) <- paste0('G', chess.data$id);

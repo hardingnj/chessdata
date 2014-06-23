@@ -2,30 +2,38 @@
 #'
 #' This function takes a dataframe representing a game and calculates some summary statistics. 
 #'
-#' @param game a dataframe representing a game
-#' @param mercy_rule_limit a value representing how far behind a player must get before mercy rule is applied
+#' @param game_to_eval a dataframe representing a game
+#' @param mercy_rule a logical vector representing whether or not to mask each move 
 #' @export
-#' @import reshape2 
 
-calculate_metrics <- function(game_to_eval, mercy_rule){
+calculate_metrics <- function(game_to_eval, mercy_rule = rep(TRUE, nrow(game_to_eval))){
 
   # This is required in the possible event that whoToMove only has a single level.
-  levels(game_to_eval$whoToMove) <- c('White', 'Black')
+  stopifnot(game_to_eval$whoToMove[1] == 'White');
+  game_to_eval <- game_to_eval[mercy_rule,]
 
-  metrics <- with(
-    subset(game_to_eval, mercy_rule),
-    list(
-      mean   = tapply(X = score_diff, INDEX = whoToMove, FUN = mean, na.rm=T),
-      blun_1 = tapply(X = score_diff, INDEX = whoToMove, FUN = score_prop, value = 100),
-      blun_3 = tapply(X = score_diff, INDEX = whoToMove, FUN = score_prop, value = 300),
-      blun_5 = tapply(X = score_diff, INDEX = whoToMove, FUN = score_prop, value = 500),
-      found  = tapply(X = score_diff, INDEX = whoToMove, FUN = score_prop, value = 0, inv = TRUE)
-    ));
- 
-  mm <- melt(do.call(rbind, metrics))
-  cast <- dcast(mm, ". ~ Var2 + Var1")[,-1]
+  spl_game <- split(
+    game_to_eval,
+    game_to_eval$whoToMove
+  );
 
-  out <- cbind(nMovesTot = nrow(game_to_eval), nMoves_MR = sum(mercy_rule), cast);
-  stopifnot(ncol(out) == 12)
+  metrics <- lapply(
+    spl_game,
+    function(g) {
+      with(g, list(
+        mean   = mean(score_diff, na.rm=T),
+        blun_1 = score_prop(score_diff, value = 100),
+        blun_3 = score_prop(score_diff, value = 300),
+        blun_5 = score_prop(score_diff, value = 500),
+        found  = score_prop(score_diff, value = 0, inv = TRUE)
+      ))
+     });
+
+  out <- c(
+    nMovesTot = length(mercy_rule),
+    nMoves_MR = sum(mercy_rule),
+    unlist(metrics)
+  );
+  stopifnot(length(out) == 12)
   return(out);
 }

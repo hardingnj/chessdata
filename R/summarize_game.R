@@ -10,7 +10,7 @@
 summarize_game <- function(game, mr_limit = 500){
 
   calculate_metrics(
-	  game,
-      calculate_mercy_rule(game, mr_limit)
-	);
+    game,
+    calculate_mercy_rule(game, mr_limit)
+  );
 }
